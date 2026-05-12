@@ -8,7 +8,9 @@ class DHT11(models.Model):
 class Seuil(models.Model):
     temp_max              = models.FloatField(default=30.0)
     humidite_max          = models.FloatField(default=80.0)
-    topic                 = models.CharField(max_length=100, default='')
+    email_from            = models.CharField(max_length=100, default='')
+    email_password        = models.CharField(max_length=100, default='')
+    email_to              = models.CharField(max_length=100, default='')
     derniere_alerte_temp  = models.DateTimeField(null=True, blank=True)
     derniere_alerte_humid = models.DateTimeField(null=True, blank=True)
 

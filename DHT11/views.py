@@ -37,26 +37,29 @@ def dashboard(request):
 def sauvegarder_seuil(request):
     if request.method == 'POST':
         seuil, _ = Seuil.objects.get_or_create(id=1)
-        seuil.temp_max     = float(request.POST.get('temp_max', 30))
-        seuil.humidite_max = float(request.POST.get('humidite_max', 80))
-        seuil.topic        = request.POST.get('topic', '').strip()
+        seuil.temp_max      = float(request.POST.get('temp_max', 30))
+        seuil.humidite_max  = float(request.POST.get('humidite_max', 80))
+        seuil.email_from    = request.POST.get('email_from', '').strip()
+        seuil.email_password= request.POST.get('email_password', '').strip()
+        seuil.email_to      = request.POST.get('email_to', '').strip()
         seuil.save()
     return redirect('/')
 
 
 def tester_notification(request):
+    import smtplib
+    from email.mime.text import MIMEText
     seuil = Seuil.objects.first()
-    if not seuil or not seuil.topic:
-        return JsonResponse({'ok': False, 'erreur': 'Aucun topic configuré'})
-    import urllib.request
-    req = urllib.request.Request(
-        f"https://ntfy.sh/{seuil.topic}",
-        data="Test notification DHT11 - La connexion fonctionne !".encode('utf-8'),
-        headers={'Title': 'Test DHT11', 'Priority': 'default', 'Tags': 'white_check_mark'},
-        method='POST'
-    )
+    if not seuil or not seuil.email_from or not seuil.email_to:
+        return JsonResponse({'ok': False, 'erreur': 'Email non configuré'})
     try:
-        urllib.request.urlopen(req, timeout=10)
+        msg = MIMEText("Test alerte DHT11 - La connexion fonctionne !", 'plain', 'utf-8')
+        msg['Subject'] = 'Test Alerte DHT11'
+        msg['From']    = seuil.email_from
+        msg['To']      = seuil.email_to
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10) as serveur:
+            serveur.login(seuil.email_from, seuil.email_password)
+            serveur.sendmail(seuil.email_from, seuil.email_to, msg.as_string())
         return JsonResponse({'ok': True})
     except Exception as e:
         return JsonResponse({'ok': False, 'erreur': str(e)})
