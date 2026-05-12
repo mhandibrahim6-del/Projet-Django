@@ -113,22 +113,121 @@
         th { background: #f5f5f5; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; }
         td { padding: 10px; border-bottom: 1px solid #eee; }
         tr:hover { background: #fafafa; }
+
+        /* --- Alertes seuil --- */
+        .card-alert { background: #e53935 !important; animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0%   { opacity: 1; }
+            50%  { opacity: 0.82; }
+            100% { opacity: 1; }
+        }
+        .badge-alerte {
+            display: inline-block;
+            background: #fff3;
+            border-radius: 12px;
+            padding: 2px 10px;
+            font-size: 12px;
+            margin-top: 6px;
+            font-weight: bold;
+        }
+        .banner-alerte {
+            background: #e53935;
+            color: white;
+            padding: 12px 20px;
+            margin: 0 20px 0 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        /* --- Formulaire seuil --- */
+        .seuil-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-top: 14px;
+        }
+        .seuil-grid label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; }
+        .seuil-grid input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .seuil-grid input:focus { outline: none; border-color: #2196F3; }
+        .btn-sauvegarder {
+            margin-top: 16px;
+            padding: 9px 24px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-sauvegarder:hover { background: #555; }
+        .seuil-actifs {
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #444;
+        }
+        .instructions {
+            background: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            line-height: 1.7;
+        }
+        .instructions code {
+            background: #c8e6c9;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
 
 <div class="header">Température &amp; Humidité — Monitoring</div>
 
+{% if mesure and seuil %}
+    {% if mesure.temperature > seuil.temp_max or mesure.humidite > seuil.humidite_max %}
+    <div class="banner-alerte">
+        ⚠️ ALERTE —
+        {% if mesure.temperature > seuil.temp_max %}
+            Température {{ mesure.temperature }}°C dépasse le seuil de {{ seuil.temp_max }}°C
+        {% endif %}
+        {% if mesure.temperature > seuil.temp_max and mesure.humidite > seuil.humidite_max %} | {% endif %}
+        {% if mesure.humidite > seuil.humidite_max %}
+            Humidité {{ mesure.humidite }}% dépasse le seuil de {{ seuil.humidite_max }}%
+        {% endif %}
+        — Message WhatsApp envoyé
+    </div>
+    {% endif %}
+{% endif %}
+
 <div class="cards">
     {% if mesure %}
-    <div class="card-blue">
+    <div class="card-blue {% if seuil and mesure.temperature > seuil.temp_max %}card-alert{% endif %}">
         <div class="label">Température actuelle</div>
         <div class="value">{{ mesure.temperature }} °C</div>
+        {% if seuil and mesure.temperature > seuil.temp_max %}
+        <div class="badge-alerte">⚠️ Seuil {{ seuil.temp_max }}°C dépassé</div>
+        {% endif %}
         <div class="time">{{ mesure.date }}</div>
     </div>
-    <div class="card-green">
+    <div class="card-green {% if seuil and mesure.humidite > seuil.humidite_max %}card-alert{% endif %}">
         <div class="label">Humidité actuelle</div>
         <div class="value">{{ mesure.humidite }} %</div>
+        {% if seuil and mesure.humidite > seuil.humidite_max %}
+        <div class="badge-alerte">⚠️ Seuil {{ seuil.humidite_max }}% dépassé</div>
+        {% endif %}
         <div class="time">{{ mesure.date }}</div>
     </div>
     {% else %}
@@ -141,6 +240,54 @@
         <div class="label">Humidité actuelle</div>
         <div class="value">-- %</div>
         <div class="time">Aucune donnée disponible</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ===== CONFIGURATION SEUILS ===== -->
+<div class="section">
+    <h3>⚙️ Configuration des alertes WhatsApp</h3>
+
+    <div class="instructions">
+        <strong>Activer les alertes WhatsApp (1 seule fois) :</strong><br>
+        1. Enregistrez ce numéro dans vos contacts WhatsApp : <strong>+34 644 60 49 47</strong> (nom : CallMeBot)<br>
+        2. Envoyez-lui ce message WhatsApp : <code>I allow callmebot to send me messages</code><br>
+        3. Vous recevrez votre <strong>clé API</strong> par WhatsApp<br>
+        4. Entrez votre numéro au format international sans + — ex : <code>212615724850</code> pour le Maroc
+    </div>
+
+    <form method="post" action="/seuil/sauvegarder/">
+        {% csrf_token %}
+        <div class="seuil-grid">
+            <div>
+                <label>🌡️ Température maximale (°C)</label>
+                <input type="number" name="temp_max" step="0.5"
+                       value="{{ seuil.temp_max|default:30 }}" placeholder="ex: 35">
+            </div>
+            <div>
+                <label>💧 Humidité maximale (%)</label>
+                <input type="number" name="humidite_max" step="1" min="0" max="100"
+                       value="{{ seuil.humidite_max|default:80 }}" placeholder="ex: 80">
+            </div>
+            <div>
+                <label>📱 Numéro WhatsApp (international)</label>
+                <input type="text" name="telephone"
+                       value="{{ seuil.telephone|default:'' }}" placeholder="212615724850">
+            </div>
+            <div>
+                <label>🔑 Clé API CallMeBot</label>
+                <input type="text" name="apikey"
+                       value="{{ seuil.apikey|default:'' }}" placeholder="ex: 123456">
+            </div>
+        </div>
+        <button type="submit" class="btn-sauvegarder">💾 Sauvegarder les seuils</button>
+    </form>
+
+    {% if seuil and seuil.telephone %}
+    <div class="seuil-actifs">
+        ✅ Alertes actives — Temp max : <strong>{{ seuil.temp_max }}°C</strong> &nbsp;|&nbsp;
+        Humidité max : <strong>{{ seuil.humidite_max }}%</strong> &nbsp;|&nbsp;
+        WhatsApp : <strong>+{{ seuil.telephone }}</strong>
     </div>
     {% endif %}
 </div>
