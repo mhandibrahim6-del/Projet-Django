@@ -4,9 +4,12 @@ from .models import DHT11
 
 def dashboard(request):
     mesure = DHT11.objects.order_by('-date').first()
-
     date_debut = request.GET.get('date_debut')
     date_fin   = request.GET.get('date_fin')
+
+    print("==== DEBUG ====")
+    print("date_debut =", date_debut)
+    print("date_fin =", date_fin)
 
     mesures = DHT11.objects.order_by('-date')
 
@@ -17,6 +20,9 @@ def dashboard(request):
 
     if not date_debut and not date_fin:
         mesures = mesures[:100]
+
+    print("nombre mesures =", mesures.count())
+    print("===============")
 
     return render(request, 'dashboard.html', {
         'mesure': mesure,
