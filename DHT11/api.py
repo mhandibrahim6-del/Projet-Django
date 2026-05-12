@@ -23,13 +23,16 @@ def derniere_mesure(request):
     return Response(serializer.data)
 
 
-def _envoyer_whatsapp(telephone, apikey, message):
-    url = (
-        "https://api.callmebot.com/whatsapp.php"
-        f"?phone={telephone}&text={quote(message)}&apikey={apikey}"
+def _envoyer_notification(topic, titre, message):
+    import urllib.request
+    req = urllib.request.Request(
+        f"https://ntfy.sh/{topic}",
+        data=message.encode('utf-8'),
+        headers={'Title': titre, 'Priority': 'urgent', 'Tags': 'warning'},
+        method='POST'
     )
     try:
-        urlopen(url, timeout=10)
+        urllib.request.urlopen(req, timeout=10)
     except Exception:
         pass
 
@@ -41,15 +44,17 @@ class AjouterMesure(generics.CreateAPIView):
     def perform_create(self, serializer):
         instance = serializer.save()
         seuil = Seuil.objects.first()
-        if not seuil or not seuil.telephone or not seuil.apikey:
+        if not seuil or not seuil.topic:
             return
         if instance.temperature > seuil.temp_max:
-            _envoyer_whatsapp(
-                seuil.telephone, seuil.apikey,
-                f"ALERTE Temperature: {instance.temperature}°C depasse le seuil de {seuil.temp_max}°C"
+            _envoyer_notification(
+                seuil.topic,
+                "Alerte Temperature DHT11",
+                f"Temperature: {instance.temperature}C depasse le seuil de {seuil.temp_max}C"
             )
         if instance.humidite > seuil.humidite_max:
-            _envoyer_whatsapp(
-                seuil.telephone, seuil.apikey,
-                f"ALERTE Humidite: {instance.humidite}% depasse le seuil de {seuil.humidite_max}%"
+            _envoyer_notification(
+                seuil.topic,
+                "Alerte Humidite DHT11",
+                f"Humidite: {instance.humidite}% depasse le seuil de {seuil.humidite_max}%"
             )

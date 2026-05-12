@@ -249,11 +249,12 @@
     <h3>⚙️ Configuration des alertes WhatsApp</h3>
 
     <div class="instructions">
-        <strong>Activer les alertes WhatsApp (1 seule fois) :</strong><br>
-        1. Enregistrez ce numéro dans vos contacts WhatsApp : <strong>+34 644 60 49 47</strong> (nom : CallMeBot)<br>
-        2. Envoyez-lui ce message WhatsApp : <code>I allow callmebot to send me messages</code><br>
-        3. Vous recevrez votre <strong>clé API</strong> par WhatsApp<br>
-        4. Entrez votre numéro au format international sans + — ex : <code>212615724850</code> pour le Maroc
+        <strong>Configuration en 2 étapes (aucun compte requis) :</strong><br>
+        1. Installez l'application gratuite <strong>ntfy</strong> sur votre téléphone
+           &nbsp;→&nbsp; <strong>Android :</strong> Play Store &nbsp;|&nbsp; <strong>iPhone :</strong> App Store<br>
+        2. Ouvrez ntfy → <strong>+ Subscribe to topic</strong> → entrez votre nom de topic
+           (ex : <code>dht11-ibrahim-2024</code>) → entrez ce même nom ci-dessous → Sauvegardez<br>
+        C'est tout ! Vous recevrez les alertes directement sur votre téléphone.
     </div>
 
     <form method="post" action="/seuil/sauvegarder/">
@@ -270,24 +271,19 @@
                        value="{{ seuil.humidite_max|default:80 }}" placeholder="ex: 80">
             </div>
             <div>
-                <label>📱 Numéro WhatsApp (international)</label>
-                <input type="text" name="telephone"
-                       value="{{ seuil.telephone|default:'' }}" placeholder="212615724850">
-            </div>
-            <div>
-                <label>🔑 Clé API CallMeBot</label>
-                <input type="text" name="apikey"
-                       value="{{ seuil.apikey|default:'' }}" placeholder="ex: 123456">
+                <label>🔔 Votre topic ntfy (nom unique choisi par vous)</label>
+                <input type="text" name="topic"
+                       value="{{ seuil.topic|default:'' }}" placeholder="ex: dht11-ibrahim-2024">
             </div>
         </div>
         <button type="submit" class="btn-sauvegarder">💾 Sauvegarder les seuils</button>
     </form>
 
-    {% if seuil and seuil.telephone %}
+    {% if seuil and seuil.topic %}
     <div class="seuil-actifs">
         ✅ Alertes actives — Temp max : <strong>{{ seuil.temp_max }}°C</strong> &nbsp;|&nbsp;
         Humidité max : <strong>{{ seuil.humidite_max }}%</strong> &nbsp;|&nbsp;
-        WhatsApp : <strong>+{{ seuil.telephone }}</strong>
+        Topic : <strong>{{ seuil.topic }}</strong>
     </div>
     {% endif %}
 </div>

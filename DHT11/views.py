@@ -38,7 +38,6 @@ def sauvegarder_seuil(request):
         seuil, _ = Seuil.objects.get_or_create(id=1)
         seuil.temp_max     = float(request.POST.get('temp_max', 30))
         seuil.humidite_max = float(request.POST.get('humidite_max', 80))
-        seuil.telephone    = request.POST.get('telephone', '').strip()
-        seuil.apikey       = request.POST.get('apikey', '').strip()
+        seuil.topic        = request.POST.get('topic', '').strip()
         seuil.save()
     return redirect('/')
