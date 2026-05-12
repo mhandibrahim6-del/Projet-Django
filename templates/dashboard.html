@@ -7,14 +7,12 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background: #f2f2f2; }
-
         .header {
             background: #333;
             color: white;
             padding: 15px 20px;
             font-size: 20px;
         }
-
         .card-blue {
             background: #2196F3;
             color: white;
@@ -24,7 +22,6 @@
         }
         .card-blue .temp { font-size: 40px; font-weight: bold; }
         .card-blue .time { margin-top: 10px; font-size: 14px; }
-
         .section {
             background: white;
             margin: 20px;
@@ -33,11 +30,57 @@
             box-shadow: 0 0 8px rgba(0,0,0,0.1);
         }
         .section h3 { margin-bottom: 15px; color: #333; }
-
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background: #f5f5f5; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; }
         td { padding: 10px; border-bottom: 1px solid #eee; }
         tr:hover { background: #fafafa; }
+
+        /* Filtre */
+        .filter-box {
+            background: white;
+            margin: 20px;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        }
+        .filter-box h4 { font-size: 14px; color: #555; margin-bottom: 12px; }
+        .btn-rapide {
+            padding: 5px 14px;
+            margin-right: 6px;
+            border: 1px solid #2196F3;
+            border-radius: 4px;
+            background: transparent;
+            color: #2196F3;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .btn-rapide:hover { background: #2196F3; color: white; }
+        .filter-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .filter-row label { font-size: 12px; color: #777; display: block; margin-bottom: 4px; }
+        .filter-row input[type="datetime-local"] {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #333;
+        }
+        .btn-filtrer {
+            padding: 7px 20px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .btn-filtrer:hover { background: #1976D2; }
+        .filter-info { margin-top: 10px; font-size: 12px; color: #888; }
     </style>
 </head>
 <body>
@@ -56,19 +99,57 @@
 </div>
 {% endif %}
 
+<!-- FILTRE DE PÉRIODE -->
+<div class="filter-box">
+    <h4>Choisir une période</h4>
+
+    <div>
+        <button class="btn-rapide" onclick="setPeriode(1)">24 h</button>
+        <button class="btn-rapide" onclick="setPeriode(7)">7 jours</button>
+        <button class="btn-rapide" onclick="setPeriode(30)">30 jours</button>
+        <button class="btn-rapide" onclick="setPeriode(null)">Tout voir</button>
+    </div>
+
+    <form method="GET" action="">
+        <div class="filter-row">
+            <div>
+                <label>Date début</label>
+                <input type="datetime-local" name="date_debut" id="date_debut"
+                       value="{{ date_debut }}">
+            </div>
+            <div>
+                <label>Date fin</label>
+                <input type="datetime-local" name="date_fin" id="date_fin"
+                       value="{{ date_fin }}">
+            </div>
+            <button type="submit" class="btn-filtrer">Filtrer</button>
+        </div>
+    </form>
+
+    {% if date_debut or date_fin %}
+    <div class="filter-info">
+        Filtre actif :
+        {% if date_debut %}du <strong>{{ date_debut }}</strong>{% endif %}
+        {% if date_fin %}au <strong>{{ date_fin }}</strong>{% endif %}
+        — {{ mesures|length }} enregistrement(s).
+        <a href="?" style="color:#2196F3; margin-left:8px;">Effacer le filtre</a>
+    </div>
+    {% endif %}
+</div>
+
 <div class="section">
     <h3>Graphe Temperature</h3>
     <canvas id="myChart" height="80"></canvas>
 </div>
 
 <div class="section">
-    <h3>les enregistrements</h3>
+    <h3>Les enregistrements</h3>
     <table>
         <thead>
             <tr>
                 <th>Température</th>
                 <th>Humidité</th>
-                <th>Date:Heure</th>
+                <th>Date : Heure</th>
             </tr>
         </thead>
         <tbody>
@@ -84,6 +165,20 @@
 </div>
 
 <script>
+    function setPeriode(jours) {
+        if (jours === null) {
+            document.getElementById('date_debut').value = '';
+            document.getElementById('date_fin').value = '';
+        } else {
+            const fin = new Date();
+            const debut = new Date();
+            debut.setDate(debut.getDate() - jours);
+            document.getElementById('date_debut').value = debut.toISOString().slice(0, 16);
+            document.getElementById('date_fin').value = fin.toISOString().slice(0, 16);
+        }
+        document.querySelector('form').submit();
+    }
+
     const labels = [{% for m in mesures %}"{{ m.date|date:'d/m H:i' }}",{% endfor %}];
     const data = [{% for m in mesures %}{{ m.temperature }},{% endfor %}];
 
@@ -108,6 +203,5 @@
         }
     });
 </script>
-
 </body>
 </html>
