@@ -1,32 +1,30 @@
 from django.shortcuts import render
-from django.utils.dateparse import parse_datetime
+from django.utils import timezone
+from datetime import timedelta
 from .models import DHT11
 
 def dashboard(request):
     mesure = DHT11.objects.order_by('-date').first()
-    date_debut = request.GET.get('date_debut')
-    date_fin   = request.GET.get('date_fin')
 
-    print("==== DEBUG ====")
-    print("date_debut =", date_debut)
-    print("date_fin =", date_fin)
+    periode = request.GET.get('periode', '24h')
+    debut   = request.GET.get('debut', '')
+    fin     = request.GET.get('fin', '')
 
-    mesures = DHT11.objects.order_by('-date')
+    mesures = DHT11.objects.order_by('date')
 
-    if date_debut:
-        mesures = mesures.filter(date__gte=parse_datetime(date_debut))
-    if date_fin:
-        mesures = mesures.filter(date__lte=parse_datetime(date_fin))
-
-    if not date_debut and not date_fin:
-        mesures = mesures[:100]
-
-    print("nombre mesures =", mesures.count())
-    print("===============")
+    if debut and fin:
+        mesures = mesures.filter(date__gte=debut, date__lte=fin)
+        periode = 'custom'
+    else:
+        durees = {'1h': 1, '6h': 6, '24h': 24, '7j': 168, '30j': 720}
+        heures = durees.get(periode, 24)
+        since  = timezone.now() - timedelta(hours=heures)
+        mesures = mesures.filter(date__gte=since)
 
     return render(request, 'dashboard.html', {
-        'mesure': mesure,
-        'mesures': mesures,
-        'date_debut': date_debut or '',
-        'date_fin':   date_fin or '',
+        'mesure'  : mesure,
+        'mesures' : mesures,
+        'periode' : periode,
+        'debut'   : debut,
+        'fin'     : fin,
     })

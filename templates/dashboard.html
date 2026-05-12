@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Temperature & Humidity Monitoring</title>
+    <title>Temperature &amp; Humidity Monitoring</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -51,6 +51,64 @@
         }
         .section h3 { margin-bottom: 15px; color: #333; }
 
+        /* --- Filtre période --- */
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+        .filter-bar .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+        .btn-periode {
+            padding: 7px 16px;
+            border: 2px solid #2196F3;
+            border-radius: 20px;
+            background: white;
+            color: #2196F3;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-periode:hover { background: #e3f2fd; }
+        .btn-periode.active { background: #2196F3; color: white; }
+
+        .filter-bar .separator {
+            color: #aaa;
+            font-size: 13px;
+            margin: 0 4px;
+        }
+
+        .custom-range {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .custom-range label { font-size: 13px; color: #555; }
+        .custom-range input[type="datetime-local"] {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .btn-filtrer {
+            padding: 7px 18px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-filtrer:hover { background: #555; }
+
+        .nb-resultats {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #888;
+        }
+
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background: #f5f5f5; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; }
         td { padding: 10px; border-bottom: 1px solid #eee; }
@@ -87,11 +145,39 @@
     {% endif %}
 </div>
 
+<!-- ===== FILTRE PERIODE ===== -->
+<div class="section">
+    <h3>Sélectionner la période</h3>
+    <div class="filter-bar">
+
+        <div class="quick-btns">
+            <a href="?periode=1h"  class="btn-periode {% if periode == '1h'  %}active{% endif %}">1 heure</a>
+            <a href="?periode=6h"  class="btn-periode {% if periode == '6h'  %}active{% endif %}">6 heures</a>
+            <a href="?periode=24h" class="btn-periode {% if periode == '24h' %}active{% endif %}">24 heures</a>
+            <a href="?periode=7j"  class="btn-periode {% if periode == '7j'  %}active{% endif %}">7 jours</a>
+            <a href="?periode=30j" class="btn-periode {% if periode == '30j' %}active{% endif %}">30 jours</a>
+        </div>
+
+        <span class="separator">|  Personnalisé :</span>
+
+        <form method="get" class="custom-range">
+            <label>Du</label>
+            <input type="datetime-local" name="debut" value="{{ debut }}" required>
+            <label>Au</label>
+            <input type="datetime-local" name="fin"   value="{{ fin }}"   required>
+            <button type="submit" class="btn-filtrer">Filtrer</button>
+        </form>
+    </div>
+    <div class="nb-resultats">{{ mesures|length }} mesure(s) affichée(s)</div>
+</div>
+
+<!-- ===== GRAPHE ===== -->
 <div class="section">
     <h3>Graphe Température &amp; Humidité</h3>
     <canvas id="myChart" height="80"></canvas>
 </div>
 
+<!-- ===== TABLEAU ===== -->
 <div class="section">
     <h3>Les enregistrements</h3>
     <table>
@@ -115,9 +201,9 @@
 </div>
 
 <script>
-    const labels = [{% for m in mesures %}"{{ m.date|date:'d/m H:i' }}",{% endfor %}];
-    const dataTemp = [{% for m in mesures %}{{ m.temperature }},{% endfor %}];
-    const dataHumidite = [{% for m in mesures %}{{ m.humidite }},{% endfor %}];
+    const labels      = [{% for m in mesures %}"{{ m.date|date:'d/m H:i' }}",{% endfor %}];
+    const dataTemp    = [{% for m in mesures %}{{ m.temperature }},{% endfor %}];
+    const dataHumidite= [{% for m in mesures %}{{ m.humidite }},{% endfor %}];
 
     new Chart(document.getElementById('myChart'), {
         type: 'line',
@@ -149,9 +235,7 @@
         options: {
             responsive: true,
             interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: { display: true, position: 'top' }
-            },
+            plugins: { legend: { display: true, position: 'top' } },
             scales: {
                 yTemp: {
                     type: 'linear',
