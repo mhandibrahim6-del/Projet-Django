@@ -301,6 +301,7 @@
         </div>
         <button type="submit" class="btn-sauvegarder">💾 Sauvegarder les seuils</button>
         <button type="button" class="btn-tester" onclick="testerNotif()">📧 Tester l'envoi email</button>
+        <button type="button" class="btn-tester" style="background:#e53935;" onclick="simulerAlerte()">🚨 Simuler une alerte</button>
     </form>
     <div id="test-resultat" style="margin-top:12px;font-size:14px;"></div>
 
@@ -427,6 +428,20 @@
 </script>
 
 <script>
+function simulerAlerte() {
+    const div = document.getElementById('test-resultat');
+    div.innerHTML = '⏳ Envoi en cours...';
+    fetch('/seuil/simuler/')
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                div.innerHTML = '<span class="test-ok">✅ Email alerte envoyé ! ' + data.message + '</span>';
+            } else {
+                div.innerHTML = '<span class="test-erreur">❌ ' + data.erreur + '</span>';
+            }
+        });
+}
+
 function testerNotif() {
     const div = document.getElementById('test-resultat');
     div.innerHTML = '⏳ Envoi en cours...';

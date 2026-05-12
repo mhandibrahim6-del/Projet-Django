@@ -46,6 +46,36 @@ def sauvegarder_seuil(request):
     return redirect('/')
 
 
+def simuler_alerte(request):
+    import smtplib
+    from email.mime.text import MIMEText
+    seuil  = Seuil.objects.first()
+    mesure = DHT11.objects.order_by('-date').first()
+    if not seuil or not seuil.email_from or not seuil.email_to:
+        return JsonResponse({'ok': False, 'erreur': 'Email non configuré'})
+    if not mesure:
+        return JsonResponse({'ok': False, 'erreur': 'Aucune mesure en base'})
+    alertes = []
+    if mesure.temperature > seuil.temp_max:
+        alertes.append(f"Température: {mesure.temperature}°C dépasse le seuil de {seuil.temp_max}°C")
+    if mesure.humidite > seuil.humidite_max:
+        alertes.append(f"Humidité: {mesure.humidite}% dépasse le seuil de {seuil.humidite_max}%")
+    if not alertes:
+        return JsonResponse({'ok': False, 'erreur': f'Aucun seuil dépassé (Temp: {mesure.temperature}°C / Hum: {mesure.humidite}%)'})
+    corps = "\n".join(alertes)
+    try:
+        msg = MIMEText(corps, 'plain', 'utf-8')
+        msg['Subject'] = 'ALERTE DHT11 - Seuil dépassé'
+        msg['From']    = seuil.email_from
+        msg['To']      = seuil.email_to
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10) as serveur:
+            serveur.login(seuil.email_from, seuil.email_password)
+            serveur.sendmail(seuil.email_from, seuil.email_to, msg.as_string())
+        return JsonResponse({'ok': True, 'message': corps})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'erreur': str(e)})
+
+
 def tester_notification(request):
     import smtplib
     from email.mime.text import MIMEText
