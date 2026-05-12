@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework import generics
 from urllib.request import urlopen
 from urllib.parse import quote
+from django.utils import timezone
+from datetime import timedelta
 from .models import DHT11, Seuil
 from .serializers import DHT11Serializer
 
@@ -46,15 +48,26 @@ class AjouterMesure(generics.CreateAPIView):
         seuil = Seuil.objects.first()
         if not seuil or not seuil.topic:
             return
+
+        maintenant = timezone.now()
+        cooldown   = timedelta(minutes=5)
+
         if instance.temperature > seuil.temp_max:
-            _envoyer_notification(
-                seuil.topic,
-                "Alerte Temperature DHT11",
-                f"Temperature: {instance.temperature}C depasse le seuil de {seuil.temp_max}C"
-            )
+            if not seuil.derniere_alerte_temp or (maintenant - seuil.derniere_alerte_temp) >= cooldown:
+                _envoyer_notification(
+                    seuil.topic,
+                    "Alerte Temperature DHT11",
+                    f"Temperature: {instance.temperature}C depasse le seuil de {seuil.temp_max}C"
+                )
+                seuil.derniere_alerte_temp = maintenant
+                seuil.save(update_fields=['derniere_alerte_temp'])
+
         if instance.humidite > seuil.humidite_max:
-            _envoyer_notification(
-                seuil.topic,
-                "Alerte Humidite DHT11",
-                f"Humidite: {instance.humidite}% depasse le seuil de {seuil.humidite_max}%"
-            )
+            if not seuil.derniere_alerte_humid or (maintenant - seuil.derniere_alerte_humid) >= cooldown:
+                _envoyer_notification(
+                    seuil.topic,
+                    "Alerte Humidite DHT11",
+                    f"Humidite: {instance.humidite}% depasse le seuil de {seuil.humidite_max}%"
+                )
+                seuil.derniere_alerte_humid = maintenant
+                seuil.save(update_fields=['derniere_alerte_humid'])
