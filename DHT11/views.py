@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 from .models import DHT11, Seuil
@@ -41,3 +42,21 @@ def sauvegarder_seuil(request):
         seuil.topic        = request.POST.get('topic', '').strip()
         seuil.save()
     return redirect('/')
+
+
+def tester_notification(request):
+    seuil = Seuil.objects.first()
+    if not seuil or not seuil.topic:
+        return JsonResponse({'ok': False, 'erreur': 'Aucun topic configuré'})
+    import urllib.request
+    req = urllib.request.Request(
+        f"https://ntfy.sh/{seuil.topic}",
+        data="Test notification DHT11 - La connexion fonctionne !".encode('utf-8'),
+        headers={'Title': 'Test DHT11', 'Priority': 'default', 'Tags': 'white_check_mark'},
+        method='POST'
+    )
+    try:
+        urllib.request.urlopen(req, timeout=10)
+        return JsonResponse({'ok': True})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'erreur': str(e)})

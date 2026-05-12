@@ -167,6 +167,20 @@
             cursor: pointer;
         }
         .btn-sauvegarder:hover { background: #555; }
+        .btn-tester {
+            margin-top: 16px;
+            margin-left: 10px;
+            padding: 9px 24px;
+            background: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-tester:hover { background: #e68900; }
+        .test-ok    { color: #2e7d32; font-weight: bold; }
+        .test-erreur{ color: #c62828; font-weight: bold; }
         .seuil-actifs {
             margin-top: 14px;
             padding: 10px 14px;
@@ -277,7 +291,9 @@
             </div>
         </div>
         <button type="submit" class="btn-sauvegarder">💾 Sauvegarder les seuils</button>
+        <button type="button" class="btn-tester" onclick="testerNotif()">🔔 Tester la notification</button>
     </form>
+    <div id="test-resultat" style="margin-top:12px;font-size:14px;"></div>
 
     {% if seuil and seuil.topic %}
     <div class="seuil-actifs">
@@ -399,6 +415,25 @@
             }
         }
     });
+</script>
+
+<script>
+function testerNotif() {
+    const div = document.getElementById('test-resultat');
+    div.innerHTML = '⏳ Envoi en cours...';
+    fetch('/seuil/tester/')
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                div.innerHTML = '<span class="test-ok">✅ Notification envoyée ! Vérifiez votre téléphone.</span>';
+            } else {
+                div.innerHTML = '<span class="test-erreur">❌ Échec : ' + data.erreur + '</span>';
+            }
+        })
+        .catch(() => {
+            div.innerHTML = '<span class="test-erreur">❌ Erreur réseau</span>';
+        });
+}
 </script>
 
 </body>
