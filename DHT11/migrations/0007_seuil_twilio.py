@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('DHT11', '0006_alter_seuil_options'),
+        ('DHT11', '0005_seuil_email'),
     ]
 
     operations = [
