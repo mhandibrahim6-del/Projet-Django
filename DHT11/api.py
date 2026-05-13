@@ -1,5 +1,6 @@
-import smtplib
-from email.mime.text import MIMEText
+import urllib.request
+import urllib.parse
+import base64
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import generics
@@ -7,6 +8,8 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import DHT11, Seuil
 from .serializers import DHT11Serializer
+
+TWILIO_FROM = 'whatsapp:+14155238886'
 
 
 @api_view(['GET'])
@@ -25,14 +28,19 @@ def derniere_mesure(request):
     return Response(serializer.data)
 
 
-def _envoyer_email(email_from, email_password, email_to, sujet, message):
-    msg = MIMEText(message, 'plain', 'utf-8')
-    msg['Subject'] = sujet
-    msg['From']    = email_from
-    msg['To']      = email_to
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10) as serveur:
-        serveur.login(email_from, email_password)
-        serveur.sendmail(email_from, email_to, msg.as_string())
+def _envoyer_whatsapp(sid, token, to, message):
+    url  = f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json"
+    data = urllib.parse.urlencode({
+        'From': TWILIO_FROM,
+        'To'  : f'whatsapp:{to}',
+        'Body': message,
+    }).encode('utf-8')
+    creds = base64.b64encode(f"{sid}:{token}".encode()).decode()
+    req = urllib.request.Request(url, data=data, headers={
+        'Authorization': f'Basic {creds}',
+        'Content-Type' : 'application/x-www-form-urlencoded',
+    })
+    urllib.request.urlopen(req, timeout=10)
 
 
 class AjouterMesure(generics.CreateAPIView):
@@ -42,7 +50,7 @@ class AjouterMesure(generics.CreateAPIView):
     def perform_create(self, serializer):
         instance = serializer.save()
         seuil = Seuil.objects.first()
-        if not seuil or not seuil.email_from or not seuil.email_to:
+        if not seuil or not seuil.twilio_sid or not seuil.whatsapp_to:
             return
 
         maintenant = timezone.now()
@@ -51,10 +59,9 @@ class AjouterMesure(generics.CreateAPIView):
         if instance.temperature > seuil.temp_max:
             if not seuil.derniere_alerte_temp or (maintenant - seuil.derniere_alerte_temp) >= cooldown:
                 try:
-                    _envoyer_email(
-                        seuil.email_from, seuil.email_password, seuil.email_to,
-                        "ALERTE Temperature DHT11",
-                        f"La temperature est {instance.temperature}C et depasse le seuil de {seuil.temp_max}C."
+                    _envoyer_whatsapp(
+                        seuil.twilio_sid, seuil.twilio_token, seuil.whatsapp_to,
+                        f"ALERTE DHT11 - Temperature: {instance.temperature}C depasse le seuil de {seuil.temp_max}C"
                     )
                     seuil.derniere_alerte_temp = maintenant
                     seuil.save(update_fields=['derniere_alerte_temp'])
@@ -64,10 +71,9 @@ class AjouterMesure(generics.CreateAPIView):
         if instance.humidite > seuil.humidite_max:
             if not seuil.derniere_alerte_humid or (maintenant - seuil.derniere_alerte_humid) >= cooldown:
                 try:
-                    _envoyer_email(
-                        seuil.email_from, seuil.email_password, seuil.email_to,
-                        "ALERTE Humidite DHT11",
-                        f"L'humidite est {instance.humidite}% et depasse le seuil de {seuil.humidite_max}%."
+                    _envoyer_whatsapp(
+                        seuil.twilio_sid, seuil.twilio_token, seuil.whatsapp_to,
+                        f"ALERTE DHT11 - Humidite: {instance.humidite}% depasse le seuil de {seuil.humidite_max}%"
                     )
                     seuil.derniere_alerte_humid = maintenant
                     seuil.save(update_fields=['derniere_alerte_humid'])

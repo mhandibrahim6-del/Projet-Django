@@ -263,11 +263,11 @@
     <h3>⚙️ Configuration des alertes WhatsApp</h3>
 
     <div class="instructions">
-        <strong>Alertes par email Gmail — Configuration en 2 étapes :</strong><br>
-        1. Allez sur <strong>myaccount.google.com</strong> → Sécurité → Validation en 2 étapes (activez si ce n'est pas fait)<br>
-        2. Toujours dans Sécurité → <strong>Mots de passe des applications</strong> → choisissez "Autre" → tapez "DHT11" → cliquez Créer → copiez le mot de passe à 16 caractères<br>
-        3. Entrez vos informations ci-dessous → Sauvegardez<br>
-        Les alertes arrivent dans votre boîte mail (et sur votre iPhone si les notifications Gmail sont activées).
+        <strong>Alertes WhatsApp via Twilio — Configuration :</strong><br>
+        1. Ouvrez <strong>console.twilio.com</strong> → copiez votre <strong>Account SID</strong> et <strong>Auth Token</strong><br>
+        2. Allez dans <strong>Messaging → Try it out → Send a WhatsApp message</strong><br>
+        3. Envoyez le message affiché (ex: <code>join &lt;mot-clé&gt;</code>) au <strong>+1 415 523 8886</strong> sur WhatsApp<br>
+        4. Entrez vos informations ci-dessous → Sauvegardez
     </div>
 
     <form method="post" action="/seuil/sauvegarder/">
@@ -284,32 +284,32 @@
                        value="{{ seuil.humidite_max|default:80 }}" placeholder="ex: 80">
             </div>
             <div>
-                <label>📧 Votre adresse Gmail (expéditeur)</label>
-                <input type="email" name="email_from"
-                       value="{{ seuil.email_from|default:'' }}" placeholder="moncompte@gmail.com">
+                <label>🔑 Twilio Account SID</label>
+                <input type="text" name="twilio_sid"
+                       value="{{ seuil.twilio_sid|default:'' }}" placeholder="ACxxxxxxxxxxxxxxxx">
             </div>
             <div>
-                <label>🔑 Mot de passe d'application Gmail (16 caractères)</label>
-                <input type="password" name="email_password"
-                       value="{{ seuil.email_password|default:'' }}" placeholder="xxxx xxxx xxxx xxxx">
+                <label>🔐 Twilio Auth Token</label>
+                <input type="password" name="twilio_token"
+                       value="{{ seuil.twilio_token|default:'' }}" placeholder="votre auth token">
             </div>
             <div>
-                <label>📬 Email destinataire (peut être le même)</label>
-                <input type="email" name="email_to"
-                       value="{{ seuil.email_to|default:'' }}" placeholder="moncompte@gmail.com">
+                <label>📱 Votre numéro WhatsApp (format international)</label>
+                <input type="text" name="whatsapp_to"
+                       value="{{ seuil.whatsapp_to|default:'' }}" placeholder="+212615724850">
             </div>
         </div>
         <button type="submit" class="btn-sauvegarder">💾 Sauvegarder les seuils</button>
-        <button type="button" class="btn-tester" onclick="testerNotif()">📧 Tester l'envoi email</button>
+        <button type="button" class="btn-tester" onclick="testerNotif()">📱 Tester WhatsApp</button>
         <button type="button" class="btn-tester" style="background:#e53935;" onclick="simulerAlerte()">🚨 Simuler une alerte</button>
     </form>
     <div id="test-resultat" style="margin-top:12px;font-size:14px;"></div>
 
-    {% if seuil and seuil.email_to %}
+    {% if seuil and seuil.whatsapp_to %}
     <div class="seuil-actifs">
         ✅ Alertes actives — Temp max : <strong>{{ seuil.temp_max }}°C</strong> &nbsp;|&nbsp;
         Humidité max : <strong>{{ seuil.humidite_max }}%</strong> &nbsp;|&nbsp;
-        Email : <strong>{{ seuil.email_to }}</strong>
+        WhatsApp : <strong>{{ seuil.whatsapp_to }}</strong>
     </div>
     {% endif %}
 </div>
