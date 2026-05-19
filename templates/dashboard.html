@@ -221,7 +221,7 @@
         {% if mesure.humidite > seuil.humidite_max %}
             Humidité {{ mesure.humidite }}% dépasse le seuil de {{ seuil.humidite_max }}%
         {% endif %}
-        — Alerte email activée
+        — Alerte activée
     </div>
     {% endif %}
 {% endif %}
@@ -254,62 +254,6 @@
         <div class="label">Humidité actuelle</div>
         <div class="value">-- %</div>
         <div class="time">Aucune donnée disponible</div>
-    </div>
-    {% endif %}
-</div>
-
-<!-- ===== CONFIGURATION SEUILS ===== -->
-<div class="section">
-    <h3>⚙️ Configuration des alertes WhatsApp</h3>
-
-    <div class="instructions">
-        <strong>Alertes WhatsApp via Twilio — Configuration :</strong><br>
-        1. Ouvrez <strong>console.twilio.com</strong> → copiez votre <strong>Account SID</strong> et <strong>Auth Token</strong><br>
-        2. Allez dans <strong>Messaging → Try it out → Send a WhatsApp message</strong><br>
-        3. Envoyez le message affiché (ex: <code>join &lt;mot-clé&gt;</code>) au <strong>+1 415 523 8886</strong> sur WhatsApp<br>
-        4. Entrez vos informations ci-dessous → Sauvegardez
-    </div>
-
-    <form method="post" action="/seuil/sauvegarder/">
-        {% csrf_token %}
-        <div class="seuil-grid">
-            <div>
-                <label>🌡️ Température maximale (°C)</label>
-                <input type="number" name="temp_max" step="0.5"
-                       value="{{ seuil.temp_max|default:30 }}" placeholder="ex: 35">
-            </div>
-            <div>
-                <label>💧 Humidité maximale (%)</label>
-                <input type="number" name="humidite_max" step="1" min="0" max="100"
-                       value="{{ seuil.humidite_max|default:80 }}" placeholder="ex: 80">
-            </div>
-            <div>
-                <label>🔑 Twilio Account SID</label>
-                <input type="text" name="twilio_sid"
-                       value="{{ seuil.twilio_sid|default:'' }}" placeholder="ACxxxxxxxxxxxxxxxx">
-            </div>
-            <div>
-                <label>🔐 Twilio Auth Token</label>
-                <input type="password" name="twilio_token"
-                       value="{{ seuil.twilio_token|default:'' }}" placeholder="votre auth token">
-            </div>
-            <div>
-                <label>📱 Votre numéro WhatsApp (format international)</label>
-                <input type="text" name="whatsapp_to"
-                       value="{{ seuil.whatsapp_to|default:'' }}" placeholder="+212615724850">
-            </div>
-        </div>
-        <button type="submit" class="btn-sauvegarder">💾 Sauvegarder les seuils</button>
-        <button type="button" class="btn-tester" onclick="testerNotif()">📱 Tester WhatsApp</button>
-        <button type="button" class="btn-tester" style="background:#e53935;" onclick="simulerAlerte()">🚨 Simuler une alerte</button>
-    </form>
-    <div id="test-resultat" style="margin-top:12px;font-size:14px;"></div>
-
-    {% if seuil and seuil.whatsapp_to %}
-    <div class="seuil-actifs">
-        ✅ Alertes actives — Temp max : <strong>{{ seuil.temp_max }}°C</strong> &nbsp;|&nbsp;
-        Humidité max : <strong>{{ seuil.humidite_max }}%</strong> &nbsp;|&nbsp;
-        WhatsApp : <strong>{{ seuil.whatsapp_to }}</strong>
     </div>
     {% endif %}
 </div>
@@ -427,38 +371,6 @@
     });
 </script>
 
-<script>
-function simulerAlerte() {
-    const div = document.getElementById('test-resultat');
-    div.innerHTML = '⏳ Envoi en cours...';
-    fetch('/seuil/simuler/')
-        .then(r => r.json())
-        .then(data => {
-            if (data.ok) {
-                div.innerHTML = '<span class="test-ok">✅ Email alerte envoyé ! ' + data.message + '</span>';
-            } else {
-                div.innerHTML = '<span class="test-erreur">❌ ' + data.erreur + '</span>';
-            }
-        });
-}
-
-function testerNotif() {
-    const div = document.getElementById('test-resultat');
-    div.innerHTML = '⏳ Envoi en cours...';
-    fetch('/seuil/tester/')
-        .then(r => r.json())
-        .then(data => {
-            if (data.ok) {
-                div.innerHTML = '<span class="test-ok">✅ Notification envoyée ! Vérifiez votre téléphone.</span>';
-            } else {
-                div.innerHTML = '<span class="test-erreur">❌ Échec : ' + data.erreur + '</span>';
-            }
-        })
-        .catch(() => {
-            div.innerHTML = '<span class="test-erreur">❌ Erreur réseau</span>';
-        });
-}
-</script>
 
 </body>
 </html>

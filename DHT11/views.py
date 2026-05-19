@@ -34,6 +34,11 @@ def dashboard(request):
     })
 
 
+def page_config(request):
+    seuil = Seuil.objects.first()
+    return render(request, 'config.html', {'seuil': seuil})
+
+
 def sauvegarder_seuil(request):
     if request.method == 'POST':
         seuil, _ = Seuil.objects.get_or_create(id=1)

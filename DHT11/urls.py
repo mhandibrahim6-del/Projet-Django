@@ -1,9 +1,10 @@
 from django.urls import path
-from .views import dashboard, sauvegarder_seuil, tester_notification, simuler_alerte
+from .views import dashboard, page_config, sauvegarder_seuil, tester_notification, simuler_alerte
 from .api import liste_mesures, derniere_mesure, AjouterMesure
 
 urlpatterns = [
     path('', dashboard),
+    path('dht11-config-panel/', page_config),
     path('seuil/sauvegarder/', sauvegarder_seuil),
     path('seuil/tester/', tester_notification),
     path('seuil/simuler/', simuler_alerte),
