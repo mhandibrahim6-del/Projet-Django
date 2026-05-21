@@ -298,6 +298,63 @@
     {% endif %}
 {% endif %}
 
+<!-- ===== CONFIGURATION ALERTES WHATSAPP (EN HAUT) ===== -->
+<div class="section">
+    <h3>⚙️ Configuration Alertes WhatsApp</h3>
+
+    <div class="instructions">
+        1. Ouvrez <strong>console.twilio.com</strong> → copiez <strong>Account SID</strong> et <strong>Auth Token</strong><br>
+        2. Allez dans <strong>Messaging → Try it out → Send a WhatsApp message</strong><br>
+        3. Envoyez le code affiché au <code>+1 415 523 8886</code> sur WhatsApp pour activer le sandbox<br>
+        4. Remplissez le formulaire ci-dessous et cliquez <strong>Sauvegarder</strong>
+    </div>
+
+    <form method="post" action="/seuil/sauvegarder/">
+        {% csrf_token %}
+        <div class="seuil-grid">
+            <div>
+                <label>🌡️ Température max (°C)</label>
+                <input type="number" name="temp_max" step="0.5"
+                       value="{{ seuil.temp_max|default:30 }}">
+            </div>
+            <div>
+                <label>💧 Humidité max (%)</label>
+                <input type="number" name="humidite_max" step="1" min="0" max="100"
+                       value="{{ seuil.humidite_max|default:80 }}">
+            </div>
+            <div>
+                <label>🔑 Twilio Account SID</label>
+                <input type="text" name="twilio_sid"
+                       value="{{ seuil.twilio_sid|default:'' }}" placeholder="ACxxxxxxxxxxxxxxxx">
+            </div>
+            <div>
+                <label>🔐 Twilio Auth Token</label>
+                <input type="password" name="twilio_token"
+                       value="{{ seuil.twilio_token|default:'' }}">
+            </div>
+            <div>
+                <label>📱 Numéro WhatsApp (ex: +212615724850)</label>
+                <input type="text" name="whatsapp_to"
+                       value="{{ seuil.whatsapp_to|default:'' }}" placeholder="+212615724850">
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button type="submit" class="btn-save">💾 Sauvegarder</button>
+            <button type="button" class="btn-test" onclick="testerNotif()">📱 Tester WhatsApp</button>
+            <button type="button" class="btn-simuler" onclick="simulerAlerte()">🚨 Simuler une alerte</button>
+        </div>
+    </form>
+
+    <div id="test-resultat"></div>
+
+    {% if seuil and seuil.whatsapp_to %}
+    <div class="seuil-actifs">
+        ✅ Actif — Temp max : <strong>{{ seuil.temp_max }}°C</strong> | Humidité max : <strong>{{ seuil.humidite_max }}%</strong> | WhatsApp : <strong>{{ seuil.whatsapp_to }}</strong>
+    </div>
+    {% endif %}
+</div>
+
 <!-- ===== CARDS ===== -->
 <div class="cards">
     {% if mesure %}
@@ -385,63 +442,6 @@
             {% endfor %}
         </tbody>
     </table>
-</div>
-
-<!-- ===== CONFIGURATION ALERTES WHATSAPP ===== -->
-<div class="section">
-    <h3>⚙️ Configuration Alertes WhatsApp</h3>
-
-    <div class="instructions">
-        1. Ouvrez <strong>console.twilio.com</strong> → copiez <strong>Account SID</strong> et <strong>Auth Token</strong><br>
-        2. Allez dans <strong>Messaging → Try it out → Send a WhatsApp message</strong><br>
-        3. Envoyez le code affiché au <code>+1 415 523 8886</code> sur WhatsApp pour activer le sandbox<br>
-        4. Remplissez le formulaire ci-dessous et cliquez <strong>Sauvegarder</strong>
-    </div>
-
-    <form method="post" action="/seuil/sauvegarder/">
-        {% csrf_token %}
-        <div class="seuil-grid">
-            <div>
-                <label>🌡️ Température max (°C)</label>
-                <input type="number" name="temp_max" step="0.5"
-                       value="{{ seuil.temp_max|default:30 }}">
-            </div>
-            <div>
-                <label>💧 Humidité max (%)</label>
-                <input type="number" name="humidite_max" step="1" min="0" max="100"
-                       value="{{ seuil.humidite_max|default:80 }}">
-            </div>
-            <div>
-                <label>🔑 Twilio Account SID</label>
-                <input type="text" name="twilio_sid"
-                       value="{{ seuil.twilio_sid|default:'' }}" placeholder="ACxxxxxxxxxxxxxxxx">
-            </div>
-            <div>
-                <label>🔐 Twilio Auth Token</label>
-                <input type="password" name="twilio_token"
-                       value="{{ seuil.twilio_token|default:'' }}">
-            </div>
-            <div>
-                <label>📱 Numéro WhatsApp (ex: +212615724850)</label>
-                <input type="text" name="whatsapp_to"
-                       value="{{ seuil.whatsapp_to|default:'' }}" placeholder="+212615724850">
-            </div>
-        </div>
-
-        <div class="btn-row">
-            <button type="submit" class="btn-save">💾 Sauvegarder</button>
-            <button type="button" class="btn-test" onclick="testerNotif()">📱 Tester WhatsApp</button>
-            <button type="button" class="btn-simuler" onclick="simulerAlerte()">🚨 Simuler une alerte</button>
-        </div>
-    </form>
-
-    <div id="test-resultat"></div>
-
-    {% if seuil and seuil.whatsapp_to %}
-    <div class="seuil-actifs">
-        ✅ Actif — Temp max : <strong>{{ seuil.temp_max }}°C</strong> | Humidité max : <strong>{{ seuil.humidite_max }}%</strong> | WhatsApp : <strong>{{ seuil.whatsapp_to }}</strong>
-    </div>
-    {% endif %}
 </div>
 
 <script>
