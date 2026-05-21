@@ -51,44 +51,79 @@ def sauvegarder_seuil(request):
     return redirect('/')
 
 
+def _envoyer_whatsapp_view(sid, token, to, body):
+    """Envoie un message WhatsApp via Twilio et retourne (ok, detail)."""
+    import urllib.request, urllib.parse, base64, json
+    url   = f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json"
+    data  = urllib.parse.urlencode({
+        'From': 'whatsapp:+14155238886',
+        'To'  : f'whatsapp:{to}',
+        'Body': body,
+    }).encode()
+    creds = base64.b64encode(f"{sid}:{token}".encode()).decode()
+    req   = urllib.request.Request(url, data=data, headers={
+        'Authorization': f'Basic {creds}',
+        'Content-Type' : 'application/x-www-form-urlencoded',
+    })
+    try:
+        resp = urllib.request.urlopen(req, timeout=10)
+        return True, json.loads(resp.read().decode()).get('sid', 'OK')
+    except urllib.error.HTTPError as e:
+        body_err = e.read().decode('utf-8', errors='replace')
+        try:
+            detail = json.loads(body_err)
+            code   = detail.get('code', e.code)
+            msg    = detail.get('message', body_err)
+            # Messages explicites selon le code Twilio
+            if code == 63007:
+                msg = "Numéro expéditeur invalide (sandbox Twilio non activé ?)"
+            elif code == 63016:
+                msg = "Le numéro destinataire n'a pas rejoint le sandbox Twilio. Envoyez le mot-clé join à +14155238886 sur WhatsApp."
+            elif code == 63018:
+                msg = "Session sandbox expirée. Renvoyez le mot-clé join au +14155238886 sur WhatsApp."
+            elif code == 21211:
+                msg = f"Numéro WhatsApp invalide : {to}"
+            elif code == 20003:
+                msg = "Identifiants Twilio incorrects (Account SID ou Auth Token)"
+            return False, f"Twilio erreur {code} : {msg}"
+        except Exception:
+            return False, f"HTTP {e.code} : {body_err[:300]}"
+    except Exception as e:
+        return False, str(e)
+
+
 def simuler_alerte(request):
-    import urllib.request, urllib.parse, base64
     seuil  = Seuil.objects.first()
     mesure = DHT11.objects.order_by('-date').first()
     if not seuil or not seuil.twilio_sid or not seuil.whatsapp_to:
-        return JsonResponse({'ok': False, 'erreur': 'WhatsApp non configuré'})
+        return JsonResponse({'ok': False, 'erreur': 'WhatsApp non configuré — remplissez le formulaire ci-dessous'})
     if not mesure:
-        return JsonResponse({'ok': False, 'erreur': 'Aucune mesure en base'})
+        return JsonResponse({'ok': False, 'erreur': 'Aucune mesure en base de données'})
     alertes = []
     if mesure.temperature > seuil.temp_max:
-        alertes.append(f"Temperature: {mesure.temperature}C depasse le seuil de {seuil.temp_max}C")
+        alertes.append(f"🌡 ALERTE DHT11 — Temperature: {mesure.temperature}C depasse le seuil de {seuil.temp_max}C")
     if mesure.humidite > seuil.humidite_max:
-        alertes.append(f"Humidite: {mesure.humidite}% depasse le seuil de {seuil.humidite_max}%")
+        alertes.append(f"💧 ALERTE DHT11 — Humidite: {mesure.humidite}% depasse le seuil de {seuil.humidite_max}%")
     if not alertes:
-        return JsonResponse({'ok': False, 'erreur': f'Aucun seuil depasse (Temp: {mesure.temperature}C / Hum: {mesure.humidite}%)'})
-    try:
-        for msg in alertes:
-            url  = f"https://api.twilio.com/2010-04-01/Accounts/{seuil.twilio_sid}/Messages.json"
-            data = urllib.parse.urlencode({'From': 'whatsapp:+14155238886', 'To': f'whatsapp:{seuil.whatsapp_to}', 'Body': msg}).encode()
-            creds = base64.b64encode(f"{seuil.twilio_sid}:{seuil.twilio_token}".encode()).decode()
-            req = urllib.request.Request(url, data=data, headers={'Authorization': f'Basic {creds}', 'Content-Type': 'application/x-www-form-urlencoded'})
-            urllib.request.urlopen(req, timeout=10)
-        return JsonResponse({'ok': True, 'message': " | ".join(alertes)})
-    except Exception as e:
-        return JsonResponse({'ok': False, 'erreur': str(e)})
+        return JsonResponse({'ok': False, 'erreur': f'Aucun seuil dépassé — Temp actuelle: {mesure.temperature}°C (seuil: {seuil.temp_max}°C), Humidité: {mesure.humidite}% (seuil: {seuil.humidite_max}%)'})
+    erreurs = []
+    for msg in alertes:
+        ok, detail = _envoyer_whatsapp_view(seuil.twilio_sid, seuil.twilio_token, seuil.whatsapp_to, msg)
+        if not ok:
+            erreurs.append(detail)
+    if erreurs:
+        return JsonResponse({'ok': False, 'erreur': erreurs[0]})
+    return JsonResponse({'ok': True, 'message': " | ".join(alertes)})
 
 
 def tester_notification(request):
-    import urllib.request, urllib.parse, base64
     seuil = Seuil.objects.first()
     if not seuil or not seuil.twilio_sid or not seuil.whatsapp_to:
-        return JsonResponse({'ok': False, 'erreur': 'WhatsApp non configuré'})
-    try:
-        url  = f"https://api.twilio.com/2010-04-01/Accounts/{seuil.twilio_sid}/Messages.json"
-        data = urllib.parse.urlencode({'From': 'whatsapp:+14155238886', 'To': f'whatsapp:{seuil.whatsapp_to}', 'Body': 'Test alerte DHT11 - La connexion fonctionne !'}).encode()
-        creds = base64.b64encode(f"{seuil.twilio_sid}:{seuil.twilio_token}".encode()).decode()
-        req = urllib.request.Request(url, data=data, headers={'Authorization': f'Basic {creds}', 'Content-Type': 'application/x-www-form-urlencoded'})
-        urllib.request.urlopen(req, timeout=10)
+        return JsonResponse({'ok': False, 'erreur': 'WhatsApp non configuré — remplissez le formulaire ci-dessous'})
+    ok, detail = _envoyer_whatsapp_view(
+        seuil.twilio_sid, seuil.twilio_token, seuil.whatsapp_to,
+        '✅ Test DHT11 — La connexion WhatsApp fonctionne !'
+    )
+    if ok:
         return JsonResponse({'ok': True})
-    except Exception as e:
-        return JsonResponse({'ok': False, 'erreur': str(e)})
+    return JsonResponse({'ok': False, 'erreur': detail})
